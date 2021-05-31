@@ -125,7 +125,7 @@ def run_setup():
             'scipy >= 0.18.0',
             'networkx >= 1.6'],
         tests_require=[
-            'nose',
+            'pytest',
             'matplotlib >= 2.0.0'],
         packages=[
             'polytope'],
