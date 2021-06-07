@@ -146,7 +146,7 @@ class Polytope(object):
         self._chebXc = chebX
         self._chebR = chebR
         self.bbox = None
-        self.fulldim = fulldim
+        self._fulldim = fulldim
         if volume is not None:
             self._set_volume(volume)
         else:
@@ -191,7 +191,7 @@ class Polytope(object):
         P._chebR = self._chebR
         P.minrep = self.minrep
         P.bbox = self.bbox
-        P.fulldim = self.fulldim
+        P._fulldim = self._fulldim
         return P
 
     def __contains__(self, point):
@@ -271,7 +271,7 @@ class Polytope(object):
             msg += ' with other Polytope. Got instead: '
             msg += str(type(other))
             raise Exception(msg)
-        if (not is_fulldim(self)) or (not is_fulldim(other)):
+        if (not self.fulldim) or (not other.fulldim):
             return Polytope()
         if self.dim != other.dim:
             raise Exception("polytopes have different dimension")
@@ -377,6 +377,13 @@ class Polytope(object):
         self.b = factor * self.b
 
     @property
+    def fulldim(self):
+        """`False` if polytope is flat."""
+        if self._fulldim is None:
+            self._fulldim = is_fulldim(self)
+        return self._fulldim
+
+    @property
     def dim(self):
         """Return Polytope dimension."""
         try:
@@ -435,7 +442,7 @@ class Polytope(object):
         edgecolor = edgecolor or "black"
 
         ax = _newax(ax)
-        if not is_fulldim(self):
+        if not self.fulldim:
             logger.error("Cannot plot empty polytope")
             return None
         if color is None:
@@ -698,7 +705,7 @@ class Region(object):
                     self.list_poly.remove(poly)
             self.props = set(props)
             self.bbox = None
-            self.fulldim = None
+            self._fulldim = None
             self._volume = None
             self._chebXc = None
             self._chebR = None
@@ -871,6 +878,13 @@ class Region(object):
         return self.__copy__()
 
     @property
+    def fulldim(self):
+        """`False` if polytope is flat."""
+        if self._fulldim is None:
+            self._fulldim = is_fulldim(self)
+        return self._fulldim
+
+    @property
     def dim(self):
         """Return Region dimension."""
         return np.shape(self.list_poly[0].A)[1]
@@ -921,8 +935,8 @@ class Region(object):
         # TODO optional arg for text label
         if self.dim != 2:
             raise Exception("Cannot plot region of dimension other than 2")
-        if not is_fulldim(self):
-            logger.error("Cannot plot empty region")
+        if not self.fulldim:
+            logger.error("Cannot plot flat region")
             return None
         ax = _newax(ax)
         if color is None:
@@ -969,9 +983,6 @@ def is_fulldim(polyreg, abs_tol=ABS_TOL):
     @return: Boolean that is True if inner points found, False
         otherwise.
     """
-    # logger.debug('is_fulldim')
-    if polyreg.fulldim is not None:
-        return polyreg.fulldim
     lenP = len(polyreg)
     if lenP == 0:
         rc, xc = cheby_ball(polyreg)
@@ -983,7 +994,7 @@ def is_fulldim(polyreg, abs_tol=ABS_TOL):
             status[ii] = rc > abs_tol
         status = np.sum(status)
         status = status > 0
-    polyreg.fulldim = status
+    polyreg._fulldim = status
     return status
 
 
@@ -996,7 +1007,7 @@ def is_convex(reg, abs_tol=ABS_TOL):
         be convex the envelope describing the convex polytope is
         returned.
     """
-    if not is_fulldim(reg):
+    if not reg.fulldim:
         return True
     if len(reg) == 0:
         return True
@@ -1012,7 +1023,7 @@ def is_convex(reg, abs_tol=ABS_TOL):
             sum(abs(bboxP[:, 0] - bboxO[:, 0]) > abs_tol) > 0 or
             sum(abs(bboxP[:, 1] - bboxO[:, 1]) > abs_tol) > 0):
         return False, None
-    if is_fulldim(outer.diff(reg)):
+    if outer.diff(reg).fulldim:
         return False, None
     else:
         return True, outer
@@ -1073,7 +1084,7 @@ def reduce(poly, nonEmptyBounded=1, abs_tol=ABS_TOL):
         lst = []
         for poly2 in poly.list_poly:
             red = reduce(poly2)
-            if is_fulldim(red):
+            if red.fulldim:
                 lst.append(red)
         if len(lst) > 0:
             return Region(lst, poly.props)
@@ -1082,7 +1093,7 @@ def reduce(poly, nonEmptyBounded=1, abs_tol=ABS_TOL):
     # is `poly` already in minimal representation ?
     if poly.minrep:
         return poly
-    if not is_fulldim(poly):
+    if not poly.fulldim:
         return Polytope()
     # `poly` isn't flat
     A_arr = poly.A
@@ -1181,7 +1192,7 @@ def union(polyreg1, polyreg2, check_convex=False):
         return polyreg1
     if check_convex:
         s1 = intersect(polyreg1, polyreg2)
-        if is_fulldim(s1):
+        if s1.fulldim:
             s2 = polyreg2.diff(polyreg1)
             s3 = polyreg1.diff(polyreg2)
         else:
@@ -1446,7 +1457,7 @@ def envelope(reg, abs_tol=ABS_TOL):
             Ae = np.vstack([Ae, poly1.A[ind_i, :]])
             be = np.hstack([be, poly1.b[ind_i]])
     ret = reduce(Polytope(Ae, be))
-    if is_fulldim(ret):
+    if ret.fulldim:
         return ret
     else:
         return Polytope()
@@ -1537,7 +1548,7 @@ def volume(polyreg, nsamples=None, seed=None):
 
     @return: Volume of input
     """
-    if not is_fulldim(polyreg):
+    if not polyreg.fulldim:
         return 0.0
     if polyreg._volume is not None:
         logger.debug('recomputing polytope volume...')
@@ -1598,7 +1609,7 @@ def extreme(poly1):
         raise Exception("extreme: not executable for regions")
     # `poly1` is a `Polytope`
     poly1 = reduce(poly1)  # Need to have polytope non-redundant!
-    if not is_fulldim(poly1):
+    if not poly1.fulldim:
         return None
     # `poly1` isn't flat
     A = poly1.A.copy()
@@ -1651,7 +1662,7 @@ def extreme(poly1):
         for ii in xrange(sh[0]):
             Ai[ii, :] = A[ii, :] / (b[ii] - np.dot(A[ii, :], xmid))
         Q = reduce(qhull(Ai))
-        if not is_fulldim(Q):
+        if not Q.fulldim:
             return None
         # `Q` isn't flat
         H = Q.A
@@ -1932,7 +1943,7 @@ def projection_fm(poly1, new_dim, del_dim, abs_tol=ABS_TOL):
         poly = Polytope(
             np.dot(C, poly.A)[:, keep_dim],
             np.dot(C, poly.b))
-        if not is_fulldim(poly):
+        if not poly.fulldim:
             return Polytope()
         poly = reduce(poly)
     return poly
@@ -2096,7 +2107,7 @@ def projection_esp(poly1, keep_dim, del_dim):
     """
     C = poly1.A[:, keep_dim]
     D = poly1.A[:, del_dim]
-    if not is_fulldim(poly1):
+    if not poly1.fulldim:
         return Polytope()
     G, g, E = esp(C, D, poly1.b)
     return Polytope(G, g)
@@ -2156,7 +2167,7 @@ def region_diff(poly, reg, abs_tol=ABS_TOL, intersect_tol=ABS_TOL,
     HK = np.hstack([H, np.array([K]).T])
     for ii in xrange(N):
         i = ind[ii]
-        if not is_fulldim(reg.list_poly[i]):
+        if not reg.list_poly[i].fulldim:
             continue
         Hni = reg.list_poly[i].A.copy()
         Kni = reg.list_poly[i].b.copy()
