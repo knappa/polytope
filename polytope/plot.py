@@ -65,7 +65,7 @@ def plot_partition(
         then transitions in C{ppp} are shown with arrows.
         Otherwise C{ppp.adj} is plotted.
 
-        To show C{ppp.adj}, pass: trans = True
+        To plot C{ppp.adj}, pass: trans = True
 
     @param plot_numbers: If True,
         then annotate each Region center with its number.
@@ -118,7 +118,6 @@ def plot_partition(
             reg.text(str(i), ax, color='black')
     # not show trans ?
     if trans is 'none':
-        mpl.pyplot.show()
         return ax
     # plot transition arrows between patches
     rows, cols = np.nonzero(trans)
@@ -130,7 +129,6 @@ def plot_partition(
 
         plot_transition_arrow(
             ppp.regions[i], ppp.regions[j], ax, arr_size)
-    mpl.pyplot.show()
     return ax
 
 
