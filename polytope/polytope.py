@@ -1013,7 +1013,6 @@ def is_convex(reg, abs_tol=ABS_TOL):
         return True
     outer = envelope(reg)
     if is_empty(outer):
-        # Probably because input polytopes were so small and ugly..
         return False, None
     Pl, Pu = reg.bounding_box
     Ol, Ou = outer.bounding_box
