@@ -3,9 +3,11 @@
 
 ## version 0.2.4
 
-- remove support for Python 2.7, 3.5, 3.6
-- require `numpy >= 1.20.3`
+- REL: require Python >= 3.7
+- REL: require `numpy >= 1.20.3`
 - TST: require `pytest >= 6.2.4`, instead of `nose`, for Python 3.10 compatibility
+
+API:
 - add function `polytope.polytope.enumerate_integral_points`
 - always recompute the volume when calling the
   function `polytope.polytope.volume`
