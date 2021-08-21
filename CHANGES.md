@@ -6,6 +6,7 @@
 - REL: require Python >= 3.7
 - REL: require `numpy >= 1.20.3`
 - TST: require `pytest >= 6.2.4`, instead of `nose`, for Python 3.10 compatibility
+- CI: test using GitHub Actions
 
 API:
 - add function `polytope.polytope.enumerate_integral_points`
